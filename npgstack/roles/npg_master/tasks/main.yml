@@ -1,0 +1,164 @@
+---
+- name: "upload npg images to npg-master"
+  copy:
+    src: "{{ item }}"
+    dest: /tmp
+    owner: root
+    group: root
+    mode: 0777
+  with_items:
+    - files/npg_master.tar.xz
+
+- name: "Load npg docker images"
+  shell: cd /tmp && docker load<npg_master.tar.xz && rm -f /tmp/npg_master.tar.xz
+
+- name: "upload npg systemd files to npg-master"
+  copy:
+    src: "{{ item }}"
+    dest: /etc/systemd/system
+    owner: root
+    group: root
+    mode: 0777
+  with_items:
+    - files/npg.service
+    
+- name: "upload npg docker-compose files to npg-master"
+  unarchive:
+    src: files/npg.tar.gz
+    dest: /usr/local/
+    owner: root
+    group: root
+    mode: 0777
+
+- name: "copy dashboard.js to all node"
+  copy:
+    src: "{{ item }}"
+    dest: /usr/local/npg/
+    owner: root
+    group: root
+    mode: 0777
+  with_items:
+    - files/dashboard.js
+    - files/uninstall_monitor.sh
+
+- name: copy prometheus.yml to remote
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  with_items:
+    - { src: "prometheus.yml.j2", dest: "/usr/local/npg/prometheus/prometheus.yml"}
+    - { src: "loki-stack-datasource.yml.j2", dest: "/usr/local/npg/grafana/provisioning/datasources/loki-stack-datasource.yml"}
+    - { src: "docker-compose.yml.j2", dest: "/usr/local/npg/docker-compose.yml"}
+    - { src: "config.yml.j2", dest: "/usr/local/npg/alertmanager/config.yml"}
+    - { src: "grafana.ini.j2", dest: "/usr/local/npg/grafana/grafana.ini"}
+    - { src: "health_alarm_notify.conf.j2", dest: "/usr/local/npg/health_alarm_notify.conf"}
+  tags:
+    - updatenpg
+
+- name: "upload alert.rules to npg"
+  copy:
+    src: "{{ item }}"
+    dest: /usr/local/npg/prometheus/
+    owner: root
+    group: root
+    mode: 0777
+  with_items:
+    - files/alert.rules
+
+- name: "create dir /usr/local/npg/static/ajax"
+  shell: mkdir -p /usr/local/npg/static/ajax
+
+- name: "upload ajax.tar.gz files to npg-master"
+  unarchive:
+    src: files/ajax.tar.gz
+    dest: /usr/local/npg/static/
+    owner: root
+    group: root
+    mode: 0777
+
+- name: copy html to remote
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  with_items:
+    - { src: "ajax/content0.html.j2", dest: "/usr/local/npg/static/ajax/content0.html"}
+    - { src: "ajax/content1.html.j2", dest: "/usr/local/npg/static/ajax/content1.html"}
+    - { src: "ajax/content4.html.j2", dest: "/usr/local/npg/static/ajax/content4.html"}
+  tags:
+    - updatenpg
+
+- name: create prometheus storage data dir 
+  file:
+    path: "{{ prometheus_data_location }}"
+    state: directory
+    mode: 0777
+
+- name: create loki storage data dir 
+  file:
+    path: "{{ loki_data_location }}"
+    state: directory
+    mode: 0777
+
+- name: "Change npg directory priviledge"
+  shell: cd /usr/local && chmod 777 -R npg
+
+- name: "Start and enable npg service"
+  service:
+    name: npg
+    enabled: yes
+    state: started
+
+- name: "restart npg service"
+  systemd:
+    name: "{{ item }}"
+    state: restarted
+  with_items:
+    - npg
+  tags:
+    - updatenpg
+
+# Tricks, for adding external monitor
+- name: "make directory for npg_stack"
+  shell: mkdir -p /usr/local/npg_stack && mkdir -p /opt/local/netdata
+  when: inventory_hostname == groups['npg-master'][0]
+
+- name: "copy external npg stack items"
+  copy:
+    src: "{{ item }}"
+    dest: /usr/local/npg_stack/
+    owner: root
+    group: root
+    mode: 0777
+  with_items:
+    - files/nodeexporter.service
+    - files/docker-compose.yml.nodeexporter
+    - files/npg_stack_images.tar.xz
+    - files/docker-compose
+    - files/docker-19.03.5.tgz
+    - files/docker.service
+    - files/netdata.service
+  when: inventory_hostname == groups['npg-master'][0]
+
+- name: copy install_monitor.sh for external npg stack
+  template:
+    src: install_monitor.sh.j2
+    dest: "/opt/local/netdata/install_monitor.sh"
+  when: inventory_hostname == groups['npg-master'][0]
+
+- name: copy docker-compose files to external npg stack
+  template:
+    src: docker-compose.yml.client.j2
+    dest: "/opt/local/netdata/docker-compose.yml.client"
+  when: inventory_hostname == groups['npg-master'][0]
+
+- name: copy health_alarm_notify.conf to remote
+  template:
+    src: health_alarm_notify.conf.j2
+    dest: "/usr/local/npg_stack/health_alarm_notify.conf"
+  when: inventory_hostname == groups['npg-master'][0]
+
+- name: Generate npg_stack items
+  shell: cd /usr/local && tar czvf npg_stack.tar.gz npg_stack && mv npg_stack.tar.gz /usr/local/npg/static
+
+- name: Generate npg client configurations
+  shell: cd /usr/local/npg/static && mkdir -p npg_stack_client &&  cd npg_stack_client && cp /usr/local/npg_stack/netdata.service . && cp /usr/local/npg/dashboard.js . && cp /usr/local/npg_stack/health_alarm_notify.conf . && cp /opt/local/netdata/docker-compose.yml.client . &&  cp /usr/local/npg_stack/docker-compose.yml.nodeexporter . && cp /usr/local/npg_stack/nodeexporter.service .  && cd .. && chmod 777 -R npg_stack_client && cp /opt/local/netdata/install_monitor.sh . && chmod 777 install_monitor.sh && cp /usr/local/npg/uninstall_monitor.sh . 

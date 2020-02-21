@@ -1,0 +1,148 @@
+version: '2'
+
+services:
+
+  ui:
+    image: nginx:1.15
+    volumes:
+      - ./static/:/usr/share/nginx/html
+    ports:
+      - "{{ ui_external_port }}:80"
+    network_mode: "bridge"
+
+  loki:
+    image: grafana/loki:latest
+    volumes:
+      - ./loki/:/etc/loki
+      - {{ loki_data_location }}:/data
+    ports:
+      - "{{ loki_external_port }}:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    network_mode: "bridge"
+
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus/:/etc/prometheus/
+      - {{ prometheus_data_location }}:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention=35d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-admin-api'
+      - '--web.enable-lifecycle'
+    links:
+     - "alertmanager"
+    ports:
+      - {{ prometheus_external_port }}:9090
+    restart: always
+    network_mode: "bridge"
+
+  alertmanager:
+    image: prom/alertmanager
+    ports:
+      - {{ alertmanager_external_port }}:9093
+    volumes:
+      - ./alertmanager/:/etc/alertmanager/
+    network_mode: "bridge"
+    restart: always
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
+    links:
+     - "alerta"
+
+  alerta:
+    image: alerta/alerta-web
+    # volumes:
+      # - /media/xww/sda1/server/alerta/config/config.json:/web/config.json
+    ports:
+      - {{ alerta_external_port }}:8080
+    depends_on:
+      - alertadb
+    environment:
+      - DEBUG=1  # remove this line to turn DEBUG off
+      # - BASE_URL=/alerta/api  # NOTE: must end in '/api' then web URL will be '/alerta'
+      - DATABASE_URL=postgres://postgres:postgres@alertadb:5432/monitoring
+      - AUTH_REQUIRED=True
+      - ADMIN_USERS=admin@alerta.io,devops@alerta.io
+      - ADMIN_KEY=64053098-2dd9-4bed-8169-1bd07fd52dcc
+      - PLUGINS=remote_ip,reject,heartbeat,blackout,normalise,enhance
+      - ALERTMANAGER_API_URL=http://alertmanager:9093
+    restart: always
+    network_mode: "bridge"
+    links:
+     - "alertadb"
+
+  alertadb:
+    image: postgres
+    volumes:
+      - ./pg-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: monitoring
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    restart: always
+    network_mode: "bridge"
+
+  nodeexporter:
+    restart: always
+    image: quay.io/prometheus/node-exporter:v0.18.0
+    container_name: nodeexporter
+    network_mode: "bridge"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - {{ nodeexporter_external_port }}:9100
+    labels:
+      org.label-schema.group: "monitoring"
+
+  grafana:
+    image: grafana/grafana
+    depends_on:
+      - prometheus
+    ports:
+      - {{ grafana_external_port }}:3000
+    volumes:
+      - ./grafana:/etc/grafana
+#      - ./grafana_data:/var/lib/grafana
+    links:
+     - "prometheus"
+    env_file:
+      - config.grafana
+    restart: always
+    network_mode: "bridge"
+ 
+  netdata:
+    restart: always
+    hostname: {{ inventory_hostname }}
+    image: titpetric/netdata
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - apparmor:unconfined
+    environment:
+      - NETDATA_API_KEY_ENABLE_19f64b45-7aa3-40dc-b31d-b4e95946e3d7=1
+    ports:
+      - {{ netdata_external_port }}:19999
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./health_alarm_notify.conf:/etc/netdata/health_alarm_notify.conf:ro
+      - ./dashboard.js:/usr/share/netdata/web/dashboard.js:ro
+    network_mode: "bridge"
+
+networks:
+  default:
+    external:
+      name: bridge

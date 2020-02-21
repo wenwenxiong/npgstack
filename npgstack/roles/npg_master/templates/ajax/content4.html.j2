@@ -1,0 +1,10 @@
+<!doctype html>
+<html>
+<head>
+<meta charset='UTF-8'><meta name='viewport' content='width=device-width initial-scale=1'>
+<title>index</title>
+</head>
+<body>
+    <div  id='cluster_entrance'  class = 'is-node'><h1><a name="npg开源组件界面入口" class="md-header-anchor"></a><span>npg开源组件界面入口</span></h1><p><a href='http://{{ hostvars[groups['npg-master'][0]].ip }}:19999' target="_blank"><span>Netdata监控入口</span></a></p><p><code>点击上面链接，直接访问Netdata监控界面</code></p><p><a href='http://{{ hostvars[groups['npg-master'][0]].ip }}:3000' target="_blank"><span>Grafana监控归总页面</span></a></p><p><code>点击上面链接，以admin/admin用户名和密码登录Grafana监控归总页面</code></p><p><a href='http://{{ hostvars[groups['npg-master'][0]].ip }}:9090' target="_blank"><span>Prometheus页面</span></a></p><p><code>点击上面链接，直接访问Prometheus界面</code></p><p><a href='http://{{ hostvars[groups['npg-master'][0]].ip }}:8889' target="_blank"><span>Alerta集中告警</span></a></p><p><code>点击上面链接，以admin@alerta.io/alerta用户名和密码登录告警信息管理界面</code></p><p>&nbsp;</p></div>
+</body>
+</html>

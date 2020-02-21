@@ -1,0 +1,18 @@
+[Unit]
+Description=nodeexporter
+Requires=docker.service
+After=docker.service
+
+[Service]
+WorkingDirectory=/opt/local/nodeexporter/
+Type=idle
+Restart=always
+# Remove old container items
+ExecStartPre=/usr/bin/docker-compose -f /opt/local/nodeexporter/docker-compose.yml down
+# Compose up
+ExecStart=/usr/bin/docker-compose -f /opt/local/nodeexporter/docker-compose.yml up
+# Compose stop
+ExecStop=/usr/bin/docker-compose -f /opt/local/nodeexporter/docker-compose.yml stop
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+loki_data_location: /usr/local/npg/loki_data
+prometheus_data_location: /usr/local/npg/prometheus_data
+#port config
+ui_external_port: 8888
+loki_external_port: 3100
+prometheus_external_port: 9090
+alertmanager_external_port: 9093
+alerta_external_port: 8889
+nodeexporter_external_port: 9100
+grafana_external_port: 3000
+netdata_external_port: 19999

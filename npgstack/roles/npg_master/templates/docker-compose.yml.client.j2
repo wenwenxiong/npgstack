@@ -1,0 +1,30 @@
+version: '3.4'
+
+services:
+  netdata:
+    restart: always
+    hostname: {{ inventory_hostname }}
+    image: titpetric/netdata
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - apparmor:unconfined
+    environment:
+      - NETDATA_STREAM_API_KEY=19f64b45-7aa3-40dc-b31d-b4e95946e3d7
+      - NETDATA_STREAM_DESTINATION={{ hostvars[groups['npg-master'][0]].ip }}:19999
+      - PGID=999
+    ports:
+      - 19999:19999
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /opt/local/netdata/health_alarm_notify.conf:/etc/netdata/health_alarm_notify.conf:ro
+      - /opt/local/netdata/dashboard.js:/usr/share/netdata/web/dashboard.js:ro
+    network_mode: "bridge"
+
+networks:
+  default:
+    external:
+      name: bridge
+

@@ -1,0 +1,212 @@
+groups:
+- name: example
+  rules:
+
+  # Alert for any instance that is unreachable for >5 minutes.
+  - alert: service_down
+    expr: up == 0
+    for: 2m
+    labels:
+      severity: major
+    annotations:
+      summary: "Instance {{ $labels.instance }} down"
+      description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 2 minutes."
+
+  - alert: high_load
+    expr: node_load1 > 0.5
+    for: 2m
+    labels:
+      severity: major
+    annotations:
+      summary: "Instance {{ $labels.instance }} under high load"
+      description: "{{ $labels.instance }} of job {{ $labels.job }} is under high load."
+
+- name: memory
+  rules:
+
+  - alert: ram_in_use
+    expr: 100*sum(netdata_system_ram_MB_average{chart="system.ram",family="ram",dimension="used"}) by (job)/sum(netdata_system_ram_MB_average{chart="system.ram",family="ram",dimension=~"used|cached|free"}) by (job) > 90
+    for: 5m
+    labels:
+      severity: major
+    annotations:
+      title: "system RAM used major"
+      summary: "Job {{ $labels.job }} system RAM used, as a percentage of the system RAM"
+      description: "{{ $labels.instance }} of job {{ $labels.job }} RAM usage=(current value: {{ $value }})"  
+
+  - alert: ram_available
+    expr: 100*sum(netdata_system_ram_MB_average{chart="system.ram",dimension="avail",family="ram"}) by (job)/sum(netdata_system_ram_MB_average{chart="system.ram",dimension=~"used|cached|free|buffers",family="ram"}) by (job) < 10
+    for: 5m
+    labels:
+      severity: major
+    annotations:
+      title: "Available RAM major"
+      summary: "Job {{ $labels.job }} estimated amount of RAM available for userspace processes, without causing swapping"
+      description: "{{ $labels.instance }} of job {{ $labels.job }} RAM available=(current value: {{ $value }})" 
+
+  - alert: ram_in_swap
+    expr: 100*sum(netdata_system_swap_MB_average{chart="system.swap",dimension="used",family="swap"}) by (job)/sum(netdata_system_ram_MB_average{chart="system.ram",family="ram"}) by (job) > 30
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      title: "swap usage major"
+      summary: "Job {{ $labels.job }} the swap memory used, as a percentage of the system RAM"
+      description: "{{ $labels.instance }} of job {{ $labels.job }} Swap usage=(current value: {{ $value }})"
+
+- name: cpu
+  rules:
+
+  - alert: 10min_cpu_usage
+    expr: sum(netdata_system_cpu_percentage_average{chart="system.cpu",family="cpu",dimension=~"user|system|softirq|irq|guest"}) by (job) > 85
+    for: 10m
+    labels:
+      severity: major
+    annotations:
+      title: "cpu usage major"
+      summary: "High average cpu usage"
+      description: "{{ $labels.instance }} of job {{ $labels.job }} average cpu utilization for the last 10 minutes (excluding iowait, nice and steal) (current value: {{ $value }})"	  
+
+  - alert: 10min_cpu_iowait
+    expr: sum(netdata_system_cpu_percentage_average{chart="system.cpu",family="cpu",dimension="iowait"}) by (job) > 40
+    for: 10m
+    labels:
+      severity: major
+    annotations:
+      title: "cpu wait I/O usage major"
+      summary: "High average cpu wait I/O usage"
+      description: "{{ $labels.instance }} of job {{ $labels.job }} average cpu utilization wait I/O for the last 10 minutes (current value: {{ $value }})"	  	  
+
+  - alert: 20min_steal_cpu
+    expr: sum(netdata_system_cpu_percentage_average{chart="system.cpu",family="cpu",dimension="steal"}) by (job) > 40
+    for: 20m
+    labels:
+      severity: major
+    annotations:
+      title: "cpu steal time usage major"
+      summary: "High average cpu steal time usage"
+      description: "{{ $labels.instance }} of job {{ $labels.job }} average cpu utilization steal time for the last 20 minutes (current value: {{ $value }})"  
+
+- name: node-exporter
+  rules:
+
+  - alert: OutOfMemory
+    expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100 < 10
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Out of memory (instance {{ $labels.instance }})"
+      description: "Node memory is filling up (< 10% left)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+  
+  - alert: UnusualNetworkThroughputIn
+    expr: sum by (instance) (irate(node_network_receive_bytes_total[2m])) / 1024 / 1024 > 100
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Unusual network throughput in (instance {{ $labels.instance }})"
+      description: "Host network interfaces are probably receiving too much data (> 100 MB/s)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+  
+  - alert: UnusualNetworkThroughputOut
+    expr: sum by (instance) (irate(node_network_transmit_bytes_total[2m])) / 1024 / 1024 > 100
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Unusual network throughput out (instance {{ $labels.instance }})"
+      description: "Host network interfaces are probably sending too much data (> 100 MB/s)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+  
+  - alert: UnusualDiskReadRate
+    expr: sum by (instance) (irate(node_disk_read_bytes_total[2m])) / 1024 / 1024 > 50
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Unusual disk read rate (instance {{ $labels.instance }})"
+      description: "Disk is probably reading too much data (> 50 MB/s)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: UnusualDiskWriteRate
+    expr: sum by (instance) (irate(node_disk_written_bytes_total[2m])) / 1024 / 1024 > 50
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Unusual disk write rate (instance {{ $labels.instance }})"
+      description: "Disk is probably writing too much data (> 50 MB/s)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: OutOfDiskSpace
+    expr: node_filesystem_free_bytes{mountpoint ="/rootfs"} / node_filesystem_size_bytes{mountpoint ="/rootfs"} * 100 < 10
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Out of disk space (instance {{ $labels.instance }})"
+      description: "Disk is almost full (< 10% left)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+  
+  - alert: OutOfInodes
+    expr: node_filesystem_files_free{mountpoint ="/rootfs"} / node_filesystem_files{mountpoint ="/rootfs"} * 100 < 10
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Out of inodes (instance {{ $labels.instance }})"
+      description: "Disk is almost running out of available inodes (< 10% left)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+  
+  - alert: UnusualDiskReadLatency
+    expr: rate(node_disk_read_time_seconds_total[1m]) / rate(node_disk_reads_completed_total[1m]) > 100
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Unusual disk read latency (instance {{ $labels.instance }})"
+      description: "Disk latency is growing (read operations > 100ms)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+  
+  - alert: UnusualDiskWriteLatency
+    expr: rate(node_disk_write_time_seconds_total[1m]) / rate(node_disk_writes_completed_total[1m]) > 100
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Unusual disk write latency (instance {{ $labels.instance }})"
+      description: "Disk latency is growing (write operations > 100ms)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+  
+  - alert: HighCpuLoad
+    expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High CPU load (instance {{ $labels.instance }})"
+      description: "CPU load is > 80%\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+  
+  # 1000 context switches is an arbitrary number.
+# Alert threshold depends on nature of application.
+# Please read: https://github.com/samber/awesome-prometheus-alerts/issues/58
+
+  - alert: ContextSwitching
+    expr: rate(node_context_switches_total[5m]) > 1000
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Context switching (instance {{ $labels.instance }})"
+      description: "Context switching is growing on node (> 1000 / s)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: SwapIsFillingUp
+    expr: (1 - (node_memory_SwapFree_bytes / node_memory_SwapTotal_bytes)) * 100 > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Swap is filling up (instance {{ $labels.instance }})"
+      description: "Swap is filling up (>80%)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: SystemdServiceCrashed
+    expr: node_systemd_unit_state{state="failed"} == 1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "SystemD service crashed (instance {{ $labels.instance }})"
+      description: "SystemD service crashed\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"

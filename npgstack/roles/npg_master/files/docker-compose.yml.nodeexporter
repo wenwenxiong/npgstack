@@ -1,0 +1,26 @@
+version: '3.4'
+
+services:
+  nodeexporter:
+    restart: always
+    image: quay.io/prometheus/node-exporter:v0.18.0
+    container_name: nodeexporter
+    network_mode: "bridge"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - 9100:9100
+    labels:
+      org.label-schema.group: "monitoring"
+
+networks:
+  default:
+    external:
+      name: bridge

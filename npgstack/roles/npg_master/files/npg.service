@@ -1,0 +1,18 @@
+[Unit]
+Description=npg
+Requires=docker.service
+After=docker.service
+
+[Service]
+WorkingDirectory=/usr/local/npg
+Type=idle
+Restart=always
+# Remove old container items
+ExecStartPre=/usr/bin/docker-compose -f /usr/local/npg/docker-compose.yml down
+# Compose up
+ExecStart=/usr/bin/docker-compose -f /usr/local/npg/docker-compose.yml up
+# Compose stop
+ExecStop=/usr/bin/docker-compose -f /usr/local/npg/docker-compose.yml stop
+
+[Install]
+WantedBy=multi-user.target
