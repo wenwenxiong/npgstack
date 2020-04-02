@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #check npg port if already used
-exist=`netstat -plnt | grep -E '3000|9090|9093|8889|3100|19999|9100' | wc -l`
+exist=`ss -plnt | grep -E '3000|9090|9093|8889|3100|19999|9100' | wc -l`
 if [ $exist -ne 0 ]; then
   echo "port 3000|9090|9093|8889|3100|19999|9100 have one or multi in used !"
   exit 1
