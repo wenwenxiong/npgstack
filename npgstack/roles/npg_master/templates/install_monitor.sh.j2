@@ -20,6 +20,8 @@ cp npg_stack/docker.service /etc/systemd/system/
 cd npg_stack && tar xzvf docker-19.03.5.tgz && chmod 777 -R docker/ && mv docker/* /usr/bin/ && cd ..
 mkdir -p /opt/local/netdata/override && chmod 777 -R /opt/local/netdata/override
 mkdir -p /opt/local/nodeexporter && chmod 777 -R /opt/local/nodeexporter
+sudo systemctl stop firewalld && sudo systemctl disable firewalld
+sudo setenforce 0
 systemctl daemon-reload
 systemctl start docker && systemctl enable docker
 docker load<npg_stack/npg_stack_images.tar.xz
