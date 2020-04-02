@@ -84,6 +84,7 @@
     - { src: "ajax/content0.html.j2", dest: "/usr/local/npg/static/ajax/content0.html"}
     - { src: "ajax/content1.html.j2", dest: "/usr/local/npg/static/ajax/content1.html"}
     - { src: "ajax/content4.html.j2", dest: "/usr/local/npg/static/ajax/content4.html"}
+    - { src: "ajax/content5.html.j2", dest: "/usr/local/npg/static/ajax/content5.html"}
   tags:
     - updatenpg
 
