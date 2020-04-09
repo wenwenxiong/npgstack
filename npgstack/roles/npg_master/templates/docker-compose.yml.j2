@@ -124,7 +124,7 @@ services:
  
   netdata:
     restart: always
-    hostname: {{ inventory_hostname }}
+    hostname: {{ hostvars[groups['npg-master'][0]].ip }}
     image: titpetric/netdata
     cap_add:
       - SYS_PTRACE
