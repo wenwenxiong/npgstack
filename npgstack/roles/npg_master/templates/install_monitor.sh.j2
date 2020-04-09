@@ -28,8 +28,9 @@ docker load<npg_stack/npg_stack_images.tar.xz
 ## 3. Change systemd file
 curl -o /opt/local/netdata/docker-compose.yml http://{{ hostvars[groups['npg-master'][0]].ip }}:8888/npg_stack_client/docker-compose.yml.client
 curl -o /opt/local/nodeexporter/docker-compose.yml http://{{ hostvars[groups['npg-master'][0]].ip }}:8888/npg_stack_client/docker-compose.yml.nodeexporter
-# replace to local hostname
-sed -i "s/hostname.*/hostname: $HOSTNAME/g" /opt/local/netdata/docker-compose.yml 
+# replace to local IP
+LOCAL_IP=`ip -o route get to  {{ hostvars[groups['npg-master'][0]].ip }} | sed -n 's/.*src \([0-9.]\+\).*/\1/p'`
+sed -i "s/hostname.*/hostname: $LOCAL_IP/g" /opt/local/netdata/docker-compose.yml 
 curl -o /opt/local/netdata/health_alarm_notify.conf http://{{ hostvars[groups['npg-master'][0]].ip }}:8888/npg_stack_client/health_alarm_notify.conf
 curl -o /opt/local/netdata/dashboard.js http://{{ hostvars[groups['npg-master'][0]].ip }}:8888/npg_stack_client/dashboard.js
 curl -o /etc/systemd/system/netdata.service http://{{ hostvars[groups['npg-master'][0]].ip }}:8888/npg_stack_client/netdata.service
