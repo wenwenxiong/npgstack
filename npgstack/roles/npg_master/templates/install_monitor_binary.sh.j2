@@ -1,0 +1,16 @@
+#!/bin/sh
+
+## 1. Get the node_exporter netdata binary pkgs file
+rm -rf /tmp/npg
+mkdir -p /tmp/npg
+curl -o /tmp/npg/node_exporter http://{{ hostvars[groups['npg-master'][0]].ip }}:8888/node_exporter
+curl -o /tmp/npg/netdata-v1.21.0.gz.run http://{{ hostvars[groups['npg-master'][0]].ip }}:8888/netdata-v1.21.0.gz.run
+## 2. Install node_exporter and netdata
+sudo cp -r /tmp/npg/node_exporter /usr/local/bin/node_exporter
+sudo chmod a+x /usr/local/bin/node_exporter
+/usr/local/bin/node_exporter &
+sudo chmod a+x /tmp/npg/netdata-v1.21.0.gz.run
+/tmp/npg/netdata-v1.21.0.gz.run --accept
+## 3. clean tmp files
+cd $HOME
+rm -rf /tmp/npg

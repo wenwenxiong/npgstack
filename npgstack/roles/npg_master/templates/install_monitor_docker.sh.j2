@@ -1,0 +1,40 @@
+#!/bin/sh
+
+## 1. Get the pkgs and docker images back
+rm -rf /tmp/npg
+mkdir -p /tmp/npg
+curl -o /tmp/npg/npg_stack.tar.gz http://{{ hostvars[groups['npg-master'][0]].ip }}:8888/npg_stack.tar.gz
+cd /tmp/npg && tar xzvf npg_stack.tar.gz
+## 2. Install docker and load images
+# Make sure you won't have other repo definition in deploy node. 
+# docker-compose binary installation
+cp npg_stack/docker-compose /usr/bin && chmod 777 /usr/bin/docker-compose
+cp npg_stack/docker.service /etc/systemd/system/
+cd npg_stack && tar xzvf docker-19.03.5.tgz && chmod 777 -R docker/ && mv docker/* /usr/bin/ && cd ..
+mkdir -p /opt/local/netdata/override && chmod 777 -R /opt/local/netdata/override
+mkdir -p /opt/local/nodeexporter && chmod 777 -R /opt/local/nodeexporter
+sudo systemctl stop firewalld && sudo systemctl disable firewalld
+sudo setenforce 0
+systemctl daemon-reload
+systemctl start docker && systemctl enable docker
+docker load<npg_stack/npg_stack_images.tar.xz
+## 3. Change systemd file
+curl -o /opt/local/netdata/docker-compose.yml http://{{ hostvars[groups['npg-master'][0]].ip }}:8888/npg_stack_client/docker-compose.yml.client
+curl -o /opt/local/nodeexporter/docker-compose.yml http://{{ hostvars[groups['npg-master'][0]].ip }}:8888/npg_stack_client/docker-compose.yml.nodeexporter
+# replace to local IP
+LOCAL_IP=`ip -o route get to  {{ hostvars[groups['npg-master'][0]].ip }} | sed -n 's/.*src \([0-9.]\+\).*/\1/p'`
+sed -i "s/hostname.*/hostname: $LOCAL_IP/g" /opt/local/netdata/docker-compose.yml 
+curl -o /opt/local/netdata/health_alarm_notify.conf http://{{ hostvars[groups['npg-master'][0]].ip }}:8888/npg_stack_client/health_alarm_notify.conf
+curl -o /opt/local/netdata/dashboard.js http://{{ hostvars[groups['npg-master'][0]].ip }}:8888/npg_stack_client/dashboard.js
+curl -o /etc/systemd/system/netdata.service http://{{ hostvars[groups['npg-master'][0]].ip }}:8888/npg_stack_client/netdata.service
+curl -o /etc/systemd/system/nodeexporter.service http://{{ hostvars[groups['npg-master'][0]].ip }}:8888/npg_stack_client/nodeexporter.service
+## 4. Start systemd. 
+systemctl daemon-reload
+systemctl enable netdata.service
+systemctl start netdata.service
+systemctl daemon-reload
+systemctl enable nodeexporter.service
+systemctl start nodeexporter.service
+## 5. clean temp file
+cd $HOME
+rm -rf /tmp/npg

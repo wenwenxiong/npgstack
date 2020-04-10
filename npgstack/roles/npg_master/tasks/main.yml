@@ -40,6 +40,10 @@
   with_items:
     - files/dashboard.js
     - files/uninstall_monitor.sh
+    - files/uninstall_monitor_docker.sh
+    - files/uninstall_monitor_binary.sh
+    - files/node_exporter
+    - files/netdata-v1.21.0.gz.run
 
 - name: copy prometheus.yml to remote
   template:
@@ -142,8 +146,13 @@
 
 - name: copy install_monitor.sh for external npg stack
   template:
-    src: install_monitor.sh.j2
-    dest: "/opt/local/netdata/install_monitor.sh"
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  with_items:
+    - {src: "install_monitor.sh.j2" , dest: "/opt/local/netdata/install_monitor.sh" }
+    - {src: "install_monitor_docker.sh.j2" , dest: "/opt/local/netdata/install_monitor_docker.sh" }
+    - {src: "install_monitor_binary.sh.j2" , dest: "/opt/local/netdata/install_monitor_binary.sh" }
+ 
   when: inventory_hostname == groups['npg-master'][0]
 
 - name: copy docker-compose files to external npg stack
@@ -162,4 +171,4 @@
   shell: cd /usr/local && tar czvf npg_stack.tar.gz npg_stack && mv npg_stack.tar.gz /usr/local/npg/static
 
 - name: Generate npg client configurations
-  shell: cd /usr/local/npg/static && mkdir -p npg_stack_client &&  cd npg_stack_client && cp /usr/local/npg_stack/netdata.service . && cp /usr/local/npg/dashboard.js . && cp /usr/local/npg_stack/health_alarm_notify.conf . && cp /opt/local/netdata/docker-compose.yml.client . &&  cp /usr/local/npg_stack/docker-compose.yml.nodeexporter . && cp /usr/local/npg_stack/nodeexporter.service .  && cd .. && chmod 777 -R npg_stack_client && cp /opt/local/netdata/install_monitor.sh . && chmod 777 install_monitor.sh && cp /usr/local/npg/uninstall_monitor.sh . 
+  shell: cd /usr/local/npg/static && mkdir -p npg_stack_client &&  cd npg_stack_client && cp /usr/local/npg_stack/netdata.service . && cp /usr/local/npg/dashboard.js . && cp /usr/local/npg_stack/health_alarm_notify.conf . && cp /opt/local/netdata/docker-compose.yml.client . &&  cp /usr/local/npg_stack/docker-compose.yml.nodeexporter . && cp /usr/local/npg_stack/nodeexporter.service .  && cd .. && chmod 777 -R npg_stack_client && cp /opt/local/netdata/install_monitor.sh . && chmod 777 install_monitor.sh && cp /opt/local/netdata/install_monitor_docker.sh . && cp /opt/local/netdata/install_monitor_binary.sh . && cp /usr/local/npg/uninstall_monitor.sh . && cp /usr/local/npg/uninstall_monitor_docker.sh . && cp /usr/local/npg/uninstall_monitor_binary.sh .
