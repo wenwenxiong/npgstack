@@ -11,6 +11,9 @@ sudo chmod a+x /usr/local/bin/node_exporter
 /usr/local/bin/node_exporter &
 sudo chmod a+x /tmp/npg/netdata-v1.21.0.gz.run
 /tmp/npg/netdata-v1.21.0.gz.run --accept
+## disable firewall
+sudo service iptables stop
+sudo chkconfig iptables off
 ## 3. clean tmp files
 cd $HOME
 rm -rf /tmp/npg
