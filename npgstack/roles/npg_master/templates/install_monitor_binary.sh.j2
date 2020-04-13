@@ -9,6 +9,7 @@ curl -o /tmp/npg/netdata-v1.21.0.gz.run http://{{ hostvars[groups['npg-master'][
 sudo cp -r /tmp/npg/node_exporter /usr/local/bin/node_exporter
 sudo chmod a+x /usr/local/bin/node_exporter
 /usr/local/bin/node_exporter &
+echo "/usr/local/bin/node_exporter &" >> /etc/rc.local
 sudo chmod a+x /tmp/npg/netdata-v1.21.0.gz.run
 /tmp/npg/netdata-v1.21.0.gz.run --accept
 ## disable firewall
