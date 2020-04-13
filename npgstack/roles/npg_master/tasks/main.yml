@@ -39,7 +39,6 @@
     mode: 0777
   with_items:
     - files/dashboard.js
-    - files/uninstall_monitor.sh
     - files/uninstall_monitor_docker.sh
     - files/uninstall_monitor_binary.sh
     - files/node_exporter
@@ -152,6 +151,7 @@
     - {src: "install_monitor.sh.j2" , dest: "/opt/local/netdata/install_monitor.sh" }
     - {src: "install_monitor_docker.sh.j2" , dest: "/opt/local/netdata/install_monitor_docker.sh" }
     - {src: "install_monitor_binary.sh.j2" , dest: "/opt/local/netdata/install_monitor_binary.sh" }
+    - {src: "uninstall_monitor.sh.j2" , dest: "/usr/local/npg/uninstall_monitor.sh" }
  
   when: inventory_hostname == groups['npg-master'][0]
 
