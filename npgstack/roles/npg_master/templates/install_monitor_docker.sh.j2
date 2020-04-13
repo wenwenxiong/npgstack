@@ -14,6 +14,7 @@ cd npg_stack && tar xzvf docker-19.03.5.tgz && chmod 777 -R docker/ && mv docker
 mkdir -p /opt/local/netdata/override && chmod 777 -R /opt/local/netdata/override
 mkdir -p /opt/local/nodeexporter && chmod 777 -R /opt/local/nodeexporter
 sudo systemctl stop firewalld && sudo systemctl disable firewalld
+sed -i s/^SELINUX=.*$/SELINUX=disabled/ /etc/selinux/config
 sudo setenforce 0
 systemctl daemon-reload
 systemctl start docker && systemctl enable docker
