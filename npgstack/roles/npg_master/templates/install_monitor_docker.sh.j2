@@ -13,9 +13,18 @@ cp npg_stack/docker.service /etc/systemd/system/
 cd npg_stack && tar xzvf docker-19.03.5.tgz && chmod 777 -R docker/ && mv docker/* /usr/bin/ && cd ..
 mkdir -p /opt/local/netdata/override && chmod 777 -R /opt/local/netdata/override
 mkdir -p /opt/local/nodeexporter && chmod 777 -R /opt/local/nodeexporter
-sudo systemctl stop firewalld && sudo systemctl disable firewalld
-sed -i s/^SELINUX=.*$/SELINUX=disabled/ /etc/selinux/config
-sudo setenforce 0
+#check os type for disable firewall and disable selinux
+source /etc/os-release
+echo $ID
+if [[ $ID =~ "ubuntu" || $ID =~ "debian" ]]; then
+    sudo ufw disable
+    #selinux-utils not install on ubuntu default
+elif [[ $ID =~ "centos" || $ID =~ "rhel" ]]; then
+    sudo systemctl stop firewalld && sudo systemctl disable firewalld
+    sed -i s/^SELINUX=.*$/SELINUX=disabled/ /etc/selinux/config
+    sudo setenforce 0
+fi
+
 systemctl daemon-reload
 systemctl start docker && systemctl enable docker
 docker load<npg_stack/npg_stack_images.tar.xz
